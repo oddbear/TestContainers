@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Mime;
+using TestRequestFileType.DataAccess;
 
 namespace TestRequestFileType.Controllers;
+
 [ApiController]
 [Route("[controller]")]
 public class WeatherForecastController : ControllerBase
@@ -12,13 +14,28 @@ public class WeatherForecastController : ControllerBase
     };
 
     private readonly ILogger<WeatherForecastController> _logger;
+    private readonly WeatherRepository _weatherRepository;
 
-    public WeatherForecastController(ILogger<WeatherForecastController> logger)
+    public WeatherForecastController(
+        ILogger<WeatherForecastController> logger,
+        WeatherRepository weatherRepository)
     {
         _logger = logger;
+        _weatherRepository = weatherRepository;
     }
 
     private WeatherForecast[] GetItems()
+        => _weatherRepository
+        .GetWeathers()
+        .Select(weather => new WeatherForecast
+        {
+            Date = weather.Date,
+            TemperatureC = weather.TemperatureC,
+            Summary = weather.Summary
+        })
+        .ToArray();
+
+    private WeatherForecast[] GetItemsLocal()
         => Enumerable.Range(1, 5).Select(index => new WeatherForecast
         {
             Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
@@ -29,7 +46,7 @@ public class WeatherForecastController : ControllerBase
 
     // JSON
     [HttpGet(Name = "GetWeatherForecast")]
-    [Produces(MediaTypeNames.Application.Json, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", Type = typeof(List<WeatherForecast>))]
+    [Produces(MediaTypeNames.Application.Json, MediaTypeConstants.ExcelModern, Type = typeof(List<WeatherForecast>))]
     public IActionResult Get()
     {
         var items = GetItems();

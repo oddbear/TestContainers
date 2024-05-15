@@ -2,7 +2,7 @@ using TestRequestFileType.ExcelOutputFormatter.Attributes;
 
 namespace TestRequestFileType;
 
-
+[ExcelFile(FileName = "WeatherForecast.xlsx")]
 public class WeatherForecast
 {
     [ExcelColumn]

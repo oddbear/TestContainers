@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Net.Http.Headers;
 using System.Reflection;
+using TestRequestFileType.Controllers;
 using TestRequestFileType.ExcelOutputFormatter.Attributes;
 
 namespace TestRequestFileType.ExcelOutputFormatter;
@@ -11,34 +12,59 @@ public class ExcelSerializerOutputFormatter : OutputFormatter
 {
     public ExcelSerializerOutputFormatter()
     {
-        SupportedMediaTypes.Add(MediaTypeHeaderValue.Parse("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        SupportedMediaTypes.Add(MediaTypeHeaderValue.Parse(MediaTypeConstants.ExcelModern));
     }
 
-    //Content-Disposition: inline; filename="myfile.txt"
+    public override bool CanWriteResult(OutputFormatterCanWriteContext context)
+    {
+        if (base.CanWriteResult(context) is false)
+            return false;
+
+        if (context.Object is not IEnumerable<object> rows)
+            return false;
+
+        var excelFileAttribute = GetExcelFileAttribute(rows);
+        if (excelFileAttribute is null)
+            return false;
+
+        return true;
+    }
 
     public override void WriteResponseHeaders(OutputFormatterWriteContext context)
     {
         base.WriteResponseHeaders(context);
-        context.HttpContext.Response.Headers.Add("Content-Disposition", "inline; filename=\"myfile.xlsx\""); // TODO: Add Filename attribute.
-    }
-
-    public override async Task WriteResponseBodyAsync(OutputFormatterWriteContext context)
-    {
-        var httpContext = context.HttpContext;
 
         if (context.Object is not IEnumerable<object> rows)
             return;
 
-        // Get the first row for headers (could extract object type from IEnumerable instead):
-        var genericType = rows.GetType()
-            .GetInterfaces()
-            .Where(type => type.IsGenericType)
-            .Where(type => type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
-            .Select(type => type.GetGenericArguments()[0])
-            .SingleOrDefault();
-
-        if (genericType is null)
+        var excelFileAttribute = GetExcelFileAttribute(rows);
+        if (excelFileAttribute is null)
             return;
+
+        if (excelFileAttribute.FileName is string fileName)
+        {
+            // Add xslx if missing:
+            if (fileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase) is false)
+                fileName = $"{fileName}.xlsx";
+
+            context.HttpContext.Response.Headers.Append("Content-Disposition", $"attachment; filename=\"{fileName}\"");
+        }
+        else
+        {
+            context.HttpContext.Response.Headers.Append("Content-Disposition", "inline");
+        }
+    }
+
+    public override Task WriteResponseBodyAsync(OutputFormatterWriteContext context)
+    {
+        var httpContext = context.HttpContext;
+
+        if (context.Object is not IEnumerable<object> rows)
+            return Task.CompletedTask;
+
+        var genericType = GetModelType(rows);
+        if (genericType is null)
+            return Task.CompletedTask;
 
         var properties = genericType.GetProperties()
             .Where(property => property.GetCustomAttribute<ExcelColumnAttribute>() is not null)
@@ -113,5 +139,28 @@ public class ExcelSerializerOutputFormatter : OutputFormatter
 
         var bodyWriter = httpContext.Response.BodyWriter.AsStream();
         package.SaveAs(bodyWriter);
+
+
+        return Task.CompletedTask;
+    }
+
+    private Type? GetModelType(IEnumerable<object>? rows)
+    {
+        // Get the first row for headers (could extract object type from IEnumerable instead):
+        return rows?.GetType()
+            .GetInterfaces()
+            .Where(type => type.IsGenericType)
+            .Where(type => type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+            .Select(type => type.GetGenericArguments()[0])
+            .SingleOrDefault();
+    }
+
+    private ExcelFileAttribute? GetExcelFileAttribute(IEnumerable<object> rows)
+    {
+        var genericType = GetModelType(rows);
+        if (genericType is null)
+            return null;
+
+        return genericType.GetCustomAttribute<ExcelFileAttribute>();
     }
 }
