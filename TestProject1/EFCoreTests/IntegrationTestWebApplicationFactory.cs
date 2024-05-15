@@ -17,13 +17,16 @@ public class IntegrationTestWebApplicationFactory : WebApplicationFactory<Progra
         MsSqlContainer msSqlContainer)
     {
         _msSqlContainer = msSqlContainer;
+
+        // This must be set for transactions to work:
+        Server.PreserveExecutionContext = true;
     }
 
     public static async Task<IntegrationTestWebApplicationFactory> CreateFactoryAsync(CancellationToken cancellationToken = default)
     {
         // Postgres 10s-5s vs SQL Server 25s-20s
         var msSqlContainer = new MsSqlBuilder()
-            //.WithImage("mcr.microsoft.com/mssql/server:2022-latest")
+            .WithImage("mcr.microsoft.com/mssql/server:2017-latest")
             .Build();
 
         await msSqlContainer.StartAsync(cancellationToken);

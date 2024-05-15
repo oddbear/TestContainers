@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http.Headers;
 using System.Net.Mime;
 using System.Text.Json;
+using System.Transactions;
 using TestRequestFileType;
 using TestRequestFileType.Controllers;
 using TestRequestFileType.DataAccess;
@@ -9,20 +10,36 @@ using TestRequestFileType.DataAccess.Entities;
 
 namespace TestProject1.EFCoreTests;
 
+[Parallelizable]
 public sealed class WeatherRepositoryTests
 {
     private IntegrationTestWebApplicationFactory _factory;
     private HttpClient _client;
+    private TransactionScope _transaction;
 
-    [SetUp]
-    public async Task SetupAsync()
+    [OneTimeSetUp]
+    public async Task OneTimeSetup()
     {
         _factory = await IntegrationTestWebApplicationFactory.CreateFactoryAsync();
+    }
+
+    [SetUp]
+    public void Setup()
+    {
         _client = _factory.CreateClient();
+
+        // Use transaction to rollback test data, or similar per test (there are multiple limits on max containers).
+        _transaction = new TransactionScope(TransactionScopeOption.Required, TransactionScopeAsyncFlowOption.Enabled);
     }
 
     [TearDown]
-    public async Task TearDownAsync()
+    public void TearDown()
+    {
+        _transaction.Dispose();
+    }
+
+    [OneTimeTearDown]
+    public async Task OneTimeTearDown()
     {
         await _factory.DisposeAsync();
     }
@@ -37,7 +54,7 @@ public sealed class WeatherRepositoryTests
         _client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(MediaTypeNames.Application.Json));
         var result = await _client.GetAsync("weatherforecast");
         var jsonResult = await result.Content.ReadAsStringAsync();
-        
+
         var customers = JsonSerializer.Deserialize<WeatherForecast[]>(jsonResult);
 
         // Assert
