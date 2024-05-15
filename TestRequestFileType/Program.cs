@@ -14,7 +14,7 @@ public class Program
 
         // TODO: Dummy connectionstring for now (to be able to generate migrations without empty constructor).
         builder.Services.AddDbContext<WeatherDbContext>(options =>
-            options.UseNpgsql("connectionString"));
+            options.UseSqlServer("connectionString"));
 
         builder.Services.AddTransient<WeatherRepository>();
 

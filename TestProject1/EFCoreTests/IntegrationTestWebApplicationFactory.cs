@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Testcontainers.PostgreSql;
+using Testcontainers.MsSql;
 using TestRequestFileType;
 using TestRequestFileType.DataAccess;
 
@@ -11,31 +11,32 @@ namespace TestProject1.EFCoreTests;
 
 public class IntegrationTestWebApplicationFactory : WebApplicationFactory<Program>
 {
-    private readonly PostgreSqlContainer _postgres;
+    private readonly MsSqlContainer _msSqlContainer;
 
     private IntegrationTestWebApplicationFactory(
-        PostgreSqlContainer postgres)
+        MsSqlContainer msSqlContainer)
     {
-        _postgres = postgres;
+        _msSqlContainer = msSqlContainer;
     }
 
     public static async Task<IntegrationTestWebApplicationFactory> CreateFactoryAsync(CancellationToken cancellationToken = default)
     {
-        var postgres = new PostgreSqlBuilder()
-            .WithImage("postgres:15-alpine")
+        // Postgres 10s-5s vs SQL Server 25s-20s
+        var msSqlContainer = new MsSqlBuilder()
+            //.WithImage("mcr.microsoft.com/mssql/server:2022-latest")
             .Build();
 
-        await postgres.StartAsync(cancellationToken);
+        await msSqlContainer.StartAsync(cancellationToken);
 
-        await MigrateEntityFrameworkCore(postgres.GetConnectionString(), cancellationToken);
+        await MigrateEntityFrameworkCore(msSqlContainer.GetConnectionString(), cancellationToken);
 
-        return new IntegrationTestWebApplicationFactory(postgres);
+        return new IntegrationTestWebApplicationFactory(msSqlContainer);
     }
 
     private static async Task MigrateEntityFrameworkCore(string connectionString, CancellationToken cancellationToken)
     {
         var dbContextOptions = new DbContextOptionsBuilder<WeatherDbContext>()
-            .UseNpgsql(connectionString, builder =>
+            .UseSqlServer(connectionString, builder =>
             {
                 // This is located in another project:
                 var dbContextAssemblyName = typeof(WeatherDbContext).Assembly.GetName().FullName;
@@ -56,7 +57,7 @@ public class IntegrationTestWebApplicationFactory : WebApplicationFactory<Progra
 
             // We don't include the migration here:
             var optionsBuilder = new DbContextOptionsBuilder<WeatherDbContext>()
-                .UseNpgsql(_postgres.GetConnectionString());
+                .UseSqlServer(_msSqlContainer.GetConnectionString());
 
             services.AddScoped(provider => optionsBuilder.Options);
         });
@@ -65,6 +66,6 @@ public class IntegrationTestWebApplicationFactory : WebApplicationFactory<Progra
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
-        await _postgres.DisposeAsync();
+        await _msSqlContainer.DisposeAsync();
     }
 }
