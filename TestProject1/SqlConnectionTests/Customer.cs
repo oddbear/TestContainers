@@ -1,3 +1,3 @@
-﻿namespace TestProject1.DbConnection;
+﻿namespace TestProject1.SqlConnectionTests;
 
 public readonly record struct Customer(long Id, string Name);

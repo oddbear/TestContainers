@@ -1,7 +1,6 @@
 using Testcontainers.PostgreSql;
 
-namespace TestProject1.DbConnection;
-
+namespace TestProject1.SqlConnectionTests;
 
 public sealed class CustomerServiceTest
 {
@@ -24,15 +23,15 @@ public sealed class CustomerServiceTest
     [Test]
     public void ShouldReturnTwoCustomers()
     {
-        // Given
+        // Arrange
         var customerService = new CustomerService(new DbConnectionProvider(_postgres.GetConnectionString()));
 
-        // When
+        // Act
         customerService.Create(new Customer(1, "George"));
         customerService.Create(new Customer(2, "John"));
         var customers = customerService.GetCustomers();
 
-        // Then
+        // Assert
         Assert.That(customers.Count(), Is.EqualTo(2));
     }
 }

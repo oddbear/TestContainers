@@ -1,7 +1,7 @@
 ﻿using Npgsql;
 using System.Data.Common;
 
-namespace TestProject1.DbConnection;
+namespace TestProject1.SqlConnectionTests;
 
 public sealed class DbConnectionProvider
 {

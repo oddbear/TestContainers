@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using TestRequestFileType.DataAccess;
 using TestRequestFileType.ExcelOutputFormatter;
 
 namespace TestRequestFileType;
@@ -9,6 +11,8 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.
+        builder.Services.AddDbContext<CustomerDbContext>(options =>
+            options.UseNpgsql("connectionString")); // Dummy connectionstring for now (to be able to generate migrations without empty constructor).
 
         builder.Services.AddControllers(options =>
         {
@@ -17,6 +21,7 @@ public class Program
             
             options.OutputFormatters.Add(new ExcelSerializerOutputFormatter());
         });
+
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
