@@ -55,7 +55,11 @@ public sealed class WeatherRepositoryTests
         var result = await _client.GetAsync("weatherforecast");
         var jsonResult = await result.Content.ReadAsStringAsync();
 
-        var customers = JsonSerializer.Deserialize<WeatherForecast[]>(jsonResult);
+        var customers = JsonSerializer.Deserialize<WeatherForecast[]>(jsonResult, new JsonSerializerOptions {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNameCaseInsensitive = true,
+
+        });
 
         // Assert
         Assert.That(result.Content.Headers.ContentType?.MediaType, Is.EqualTo(MediaTypeNames.Application.Json));
