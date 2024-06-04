@@ -8,9 +8,14 @@ using TestRequestFileType.Controllers;
 using TestRequestFileType.DataAccess;
 using TestRequestFileType.DataAccess.Entities;
 
+// https://github.com/nunit/nunit3-vs-adapter/issues/473
+// Cannot be set globaly this way, TestCategory seems to work, but Explicit + Category needs to be set per ficture (for dotnet cli to work).
+//[assembly: NUnit.Framework.Category("IntTest")] // dotnet test --filter TestCategory="IntTest"
+//[assembly: NUnit.Framework.Explicit] // Cannot be set globaly?
+
 namespace TestProject1.EFCoreTests;
 
-[Parallelizable]
+[Parallelizable, Explicit, Category("IntTest")]
 public sealed class WeatherRepositoryTests
 {
     private IntegrationTestWebApplicationFactory _factory;
@@ -35,6 +40,7 @@ public sealed class WeatherRepositoryTests
     [TearDown]
     public void TearDown()
     {
+        _client.Dispose();
         _transaction.Dispose();
     }
 
@@ -47,6 +53,8 @@ public sealed class WeatherRepositoryTests
     [Test]
     public async Task JsonResultTest()
     {
+        Assert.Fail();
+        return;
         // Arrange
         await PopulateDatabase();
 

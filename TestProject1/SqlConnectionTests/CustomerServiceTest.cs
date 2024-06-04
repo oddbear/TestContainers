@@ -38,10 +38,9 @@ public abstract class CustomerServiceTest
     }
 
     [OneTimeTearDown]
-    public Task OneTimeTearDown()
+    public async Task OneTimeTearDown()
     {
-        return Task.CompletedTask;
-        //return _postgres.DisposeAsync().AsTask();
+        await _postgres.DisposeAsync();
     }
 
 
